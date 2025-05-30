@@ -1,4 +1,4 @@
-from fastapi import FastAPI,HTTPException,Depends
+from fastapi import FastAPI,HTTPException,Depends,Query
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -14,10 +14,10 @@ origins=['http://localhost:8000']
 app.add_middleware(CORSMiddleware,allow_origins=origins,allow_headers=["*"],allow_methods=["*"],allow_credentials=True)
        
 model.Base.metadata.create_all(bind=engine)
-@app.get('/')
+@app.get('/hello')
 def hello():
     return "Hi, How you doing ?"
-@app.get("/about")
+@app.get("/")
 def about():
     return {"about":"About Page"}
 
@@ -70,11 +70,39 @@ def short_code_generator(url):
     output=shortcode[:8]
     return output
 
+
+@app.get('/show')
+def get_all_codes(show:str=Query(None),db:Session=Depends(get_db)):
+    if show=="all":
+        results=db.query(model.ShortURL.short_code,model.ShortURL.original_url).all()
+        short_urls=[{"short_code":code,
+                     "org_url": url} for code,url in results ]
+        return short_urls
+    return {"error": "Invalid query parameter"}
+
+@app.get('/admin')
+def get_access_logs(passwrd:str=Query(None),code:str=Query(None),db:Session=Depends(get_db)):
+    if passwrd!="all":
+        return {"error": "Unauthorized Access"}
+    if not code:
+        return{"error":"Please provide code"}
+    results=db.query(model.AccessLog.short_code,model.AccessLog.time_stamp).filter(model.AccessLog.short_code==code).order_by(model.AccessLog.time_stamp.desc()).limit(10).all()
+    count=db.query(model.ShortURL.visit_count).filter(model.ShortURL.short_code==code).first()
+    access_logs=[{"short_code":code,
+                    "timestamp": time_stamp} for code,time_stamp in results ]
+    return {"visit_count":count[0] if count else 0,
+            "access_logs":access_logs}
+    
+
 @app.get('/{code}')
 def resolve(code:str, db: Session=Depends(get_db)):
-    link=db.query(model.ShortURL).filter(model.ShortURL.short_code==code).first()
-    if link:
-        link.visit_count+=1
+    org_link=db.query(model.ShortURL).filter(model.ShortURL.short_code==code).first()
+    if org_link:
+        new_time_stamp=model.AccessLog(short_code=org_link.short_code)
+        org_link.visit_count+=1
+        org_link.access_log.append(new_time_stamp)
         db.commit()
-        return RedirectResponse(url=link.original_url)
+        return RedirectResponse(url=org_link.original_url)
     raise HTTPException(status_code=404,detail="Short code not found")
+
+
