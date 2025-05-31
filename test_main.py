@@ -2,7 +2,7 @@ from main import app, get_db, url_shortener, short_code_generator
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 from test_database import TestSessionLocal
-import pytest
+import pytest, os
 
 
 def override_get_db():
@@ -47,7 +47,8 @@ def test_get_all_codes():
 
 
 def test_get_access_logs():
-    response = client.get("/admin", params={"passwrd": "all"})
+    key = os.getenv("SECRET_KEY")
+    response = client.get("/admin", params={"passwrd": key})
     assert response.status_code == 200
     assert response.json() == {"error": "Please provide code"}
 
