@@ -11,6 +11,7 @@ from hashlib import sha256
 import base64
 
 from datetime import datetime
+import os
 
 from database import engine, SessionLocal
 import model
@@ -53,7 +54,7 @@ class URLRequest(BaseModel):
 
 
 class URLResponse(BaseModel):
-    id: str = Field(..., description="Unique ID of the shortened URL record")
+    id: int = Field(..., description="Unique ID of the shortened URL record")
     short_code: str = Field(..., description="Generated short code")
     created_at: datetime = Field(
         ..., description="Timestamp when the short URL was created"
@@ -139,7 +140,8 @@ def get_all_codes(show: str = Query(None), db: Session = Depends(get_db)):
 def get_access_logs(
     passwrd: str = Query(None), code: str = Query(None), db: Session = Depends(get_db)
 ):
-    if passwrd != "all":
+    key = os.getenv("SECRET_KEY")
+    if passwrd != key:
         return {"error": "Unauthorized Access"}
     if not code:
         return {"error": "Please provide code"}
