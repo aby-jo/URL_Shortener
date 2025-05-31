@@ -95,3 +95,8 @@ You can use a .env file or set them in your terminal session.
 6. Deploy the service and Render will handle the rest.
 
 Your FastAPI app will be live at the URL provided by Render.
+
+## Live Demo
+
+You can try the deployed URL shortener app here:  
+[Url Shortener by aby-jo](https://url-shortener-1iz8.onrender.com/)
