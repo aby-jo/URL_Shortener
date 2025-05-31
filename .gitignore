@@ -1,2 +1,4 @@
 __pycache__
 fastapi-env
+data.db
+test_data.db
